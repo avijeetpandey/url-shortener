@@ -4,17 +4,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class SnowflakeIdGenerator implements IdGenerator {
-    private final long epoch = 1704067200000L;
-    private final long workerIdBits = 5L;
-    private final long datacenterIdBits = 5L;
-    private final long sequenceBits = 12L;
-    private final long workerIdShift = sequenceBits;
-    private final long datacenterIdShift = sequenceBits + workerIdBits;
-    private final long timestampLeftShift = sequenceBits + workerIdBits + datacenterIdBits;
-    private final long sequenceMask = ~(-1L << sequenceBits);
 
-    private final long workerId = 1L;
-    private final long datacenterId = 1L;
     private long sequence = 0L;
     private long lastTimestamp = -1L;
 
@@ -26,7 +16,9 @@ public class SnowflakeIdGenerator implements IdGenerator {
             throw new IllegalStateException("Clock moved backwards.");
         }
 
+        long sequenceBits = 12L;
         if (lastTimestamp == timestamp) {
+            long sequenceMask = ~(-1L << sequenceBits);
             sequence = (sequence + 1) & sequenceMask;
             if (sequence == 0) {
                 timestamp = tilNextMillis(lastTimestamp);
@@ -37,9 +29,16 @@ public class SnowflakeIdGenerator implements IdGenerator {
 
         lastTimestamp = timestamp;
 
+        long epoch = 1704067200000L;
+        long workerIdBits = 5L;
+        long datacenterIdShift = sequenceBits + workerIdBits;
+        long datacenterIdBits = 5L;
+        long timestampLeftShift = sequenceBits + workerIdBits + datacenterIdBits;
+        long workerId = 1L;
+        long datacenterId = 1L;
         return ((timestamp - epoch) << timestampLeftShift) |
                 (datacenterId << datacenterIdShift) |
-                (workerId << workerIdShift) |
+                (workerId << sequenceBits) |
                 sequence;
     }
 
